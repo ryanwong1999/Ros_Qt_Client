@@ -4,6 +4,7 @@
 bool isconnected = false; // 是否连接的标志位
 int headLevelCnt = 90;
 int headPitchCnt = 90;
+int page_now = 0;
 
 // 多线程处理数据
 MyThread laser_thread;
@@ -40,8 +41,8 @@ MainWindow::MainWindow(QWidget *parent)
     };
     connect(&m_login, &login::sendLoginSuccess, this, f);
     this->initUi();
-    initVLC();
-    initPSC();
+    this->initVLC();
+    this->initPSC();
 
     //连接rosbridge
 //    QString path = QString("ws://%1:%2").arg(ui->lineEdit_RobotIP->text()).arg(9090);
@@ -49,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
     QUrl url = QUrl(path);
     m_websocket.open(url);
 
-    allconnect();
+    this->allconnect();
 
 }
 
@@ -272,9 +273,109 @@ QJsonObject MainWindow::QstringToJson(QString jsonString)
     return jsonObject;
 }
 
+// 对收到的地图数据进行处理
+void MainWindow::map_data_handle(QString data)
+{
+    qDebug() << "map_data_handle";
+    QJsonObject jsondata, msgdata, infodata, origin, position;
+    jsondata = QstringToJson(data);
+    msgdata = jsondata["msg"].toObject();
+    infodata = msgdata["info"].toObject();
+    QJsonValue width = infodata["width"];
+    QJsonValue height = infodata["height"];
+    QJsonValue resolution = infodata["resolution"];
+    origin = infodata["origin"].toObject();
+    position = origin["position"].toObject();
+    QJsonValue positionx = position["x"];
+    QJsonValue positiony = position["y"];
+    QJsonValue map = msgdata["data"]; // 地图的所有数据
+    // 使用map[num];访问其中的第num+1个元素元素
+    mapCallback(width, height, map, resolution, positionx, positiony);
+}
+
+// 地图信息订阅回调函数
+// 在此函数传入map_data_paint处理后的数据，使用roboItem定义好的paintMaps(map_image)，就可以在GraphiceView中画出地图，参考了古月居的程序
+void MainWindow::mapCallback(QJsonValue width, QJsonValue height, QJsonValue map, QJsonValue resolution, QJsonValue positionx, QJsonValue positiony)
+{
+    int size;
+    size = width.toInt() * height.toInt();
+    m_mapResolution = resolution.toDouble(); // msg->info.resolution;
+    double origin_x = positionx.toDouble();  // msg->info.origin.position.x;
+    double origin_y = positiony.toDouble();  // msg->info.origin.position.y;
+    QImage map_image(width.toInt(), height.toInt(), QImage::Format_RGB32);
+    for (int i = 0; i < size; i++) { // 想办法获取map的长度
+        int x = i % width.toInt();
+        int y = (int)i / width.toInt();
+        // 计算像素值
+        QColor color;
+        if (map[i] == 100) {
+            color = Qt::black; // black
+        } else if (map[i] == 0) {
+            color = Qt::white; // white
+        } else if (map[i] == -1) {
+            color = Qt::gray; // gray
+        }
+        map_image.setPixel(x, y, qRgb(color.red(), color.green(), color.blue()));
+    }
+    // 延y翻转地图 因为解析到的栅格地图的坐标系原点为左下角
+    // 但是图元坐标系为左上角度
+    map_image = rotateMapWithY(map_image);
+    emit update_map(map_image);
+    // updateMap(map_image);
+    // m_roboItem->paintMaps(map_image);
+    // 计算翻转后的图元坐标系原点的世界坐标
+    double origin_x_ = origin_x;
+    double origin_y_ = origin_y + height.toInt() * m_mapResolution;
+    // 世界坐标系原点在图元坐标系下的坐标
+    m_wordOrigin.setX(fabs(origin_x_) / m_mapResolution);
+    m_wordOrigin.setY(fabs(origin_y_) / m_mapResolution);
+}
+
+QImage MainWindow::rotateMapWithY(QImage map)
+{ // 沿Y轴翻转
+    QImage res = map;
+    for (int x = 0; x < map.width(); x++) {
+        for (int y = 0; y < map.height(); y++) {
+            res.setPixelColor(x, map.height() - y - 1, map.pixel(x, y));
+        }
+    }
+    return res;
+}
+
+// 四元数转欧拉角，传入四元数，返回欧拉角
+EulerAngle quaternionToEuler(Quaternion q)
+{
+    // EulerAngle euler;
+    //  计算yaw、pitch、roll
+    e.yaw = atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z));
+    e.pitch = asin(2 * (q.w * q.y - q.z * q.x));
+    e.roll = atan2(2 * (q.w * q.x + q.y * q.z), 1 - 2 * (q.x * q.x + q.y * q.y));
+    return e;
+}
+// 欧拉角转四元数，传入欧拉角，返回四元数
+Quaternion ToQuaternion(double yaw, double pitch, double roll)
+{
+    // Abbreviations for the various angular functions
+    double cy = cos(yaw * 0.5);
+    double sy = sin(yaw * 0.5);
+    double cp = cos(pitch * 0.5);
+    double sp = sin(pitch * 0.5);
+    double cr = cos(roll * 0.5);
+    double sr = sin(roll * 0.5);
+
+    Quaternion q;
+    q.w = cy * cp * cr + sy * sp * sr;
+    q.x = cy * cp * sr - sy * sp * cr;
+    q.y = sy * cp * sr + cy * sp * cr;
+    q.z = sy * cp * cr - cy * sp * sr;
+
+    return q;
+}
+
 // 订阅地图信息
 void MainWindow::read_map()
 {
+    qDebug() << "read_map";
     QString data = "{\"op\":\"subscribe\",\"topic\":\"/map\"}";
     m_websocket.sendTextMessage(data);
 }

@@ -87,6 +87,15 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    // 地图 0 0点坐标对应世界坐标系的坐标
+    float m_mapOriginX;
+    float m_mapOriginY;
+    // 世界坐标系原点在图元坐标系坐标
+    QPointF m_wordOrigin;
+    // 地图一个像素对应真实世界的距离
+    float m_mapResolution;
+    // 地图是否被初始化
+    bool m_bMapIsInit = false;
 
     VlcInstance *ipc_instance;
     VlcMedia *ipc_media;
@@ -96,6 +105,7 @@ private:
     VlcMedia *red_media;
     VlcMediaPlayer *red_player;
 
+    QImage rotateMapWithY(QImage map);
     login m_login;
     // Websocket
     QWebSocket m_websocket;
@@ -104,6 +114,13 @@ private:
     // 绘画
     Ui::roboItem *m_roboItem = NULL;
 
+Q_SIGNALS:
+  // void updateMap(QImage map);
+  // void updateRobotPose(double x,double y,double theta);
+  // 触发画图的信号
+  void update_laser(QPolygonF);
+  void update_map(QImage);
+  void update_robot_pose(double x, double y, double theta);
 
 private Q_SLOTS:
   // 收到message槽
@@ -131,9 +148,9 @@ class MyThread : public QThread
     void run()
     {
         switch (select) {
-//        case 1:
-//            w->map_data_handle(message);
-//            break;
+        case 1:
+            w->map_data_handle(message);
+            break;
 //        case 2:
 //            w->get_RobotPose(message);
 //            break;
