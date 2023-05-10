@@ -45,10 +45,10 @@ DISTFILES +=
 LIBS      += -lVLCQtCore -lVLCQtWidgets
 
 # Edit below for custom library location
-LIBS       += -LD:/APP/Qt/Qt5.14.2/5.14.2/mingw73_32/lib -lVLCQtCore -lVLCQtWidgets
-INCLUDEPATH += D:/APP/Qt/Qt5.14.2/5.14.2/mingw73_32include
-#LIBS       += -LD:/AAASOFTWARE/Qt/Qt5.14.2/5.14.2/mingw73_32/lib -lVLCQtCore -lVLCQtWidgets
-#INCLUDEPATH += D:/AAASOFTWARE/Qt/Qt5.14.2/5.14.2/mingw73_32include
+#LIBS       += -LD:/APP/Qt/Qt5.14.2/5.14.2/mingw73_32/lib -lVLCQtCore -lVLCQtWidgets
+#INCLUDEPATH += D:/APP/Qt/Qt5.14.2/5.14.2/mingw73_32include
+LIBS       += -LD:/AAASOFTWARE/Qt/Qt5.14.2/5.14.2/mingw73_32/lib -lVLCQtCore -lVLCQtWidgets
+INCLUDEPATH += D:/AAASOFTWARE/Qt/Qt5.14.2/5.14.2/mingw73_32include
 
 DISTFILES += \
     android/AndroidManifest.xml \

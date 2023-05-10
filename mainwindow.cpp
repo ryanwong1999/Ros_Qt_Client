@@ -2,6 +2,9 @@
 #include "ui_mainwindow.h"
 
 bool isconnected = false; // 是否连接的标志位
+int headLevelCnt = 90;
+int headPitchCnt = 90;
+
 // 多线程处理数据
 MyThread laser_thread;
 MyThread map_thread;
@@ -24,6 +27,7 @@ typedef struct { // 欧拉角结构体
 } EulerAngle;
 EulerAngle e;
 
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -37,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&m_login, &login::sendLoginSuccess, this, f);
     this->initUi();
     initVLC();
+    initPSC();
 
     //连接rosbridge
 //    QString path = QString("ws://%1:%2").arg(ui->lineEdit_RobotIP->text()).arg(9090);
@@ -45,6 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_websocket.open(url);
 
     allconnect();
+
 }
 
 MainWindow::~MainWindow()
@@ -66,7 +72,7 @@ void MainWindow::initUi()
 {
     this->setProperty("canMove",false);
     this->setWindowTitle("巡检机器人管理系统");
-
+    //定时器
     QTimer *timer = new QTimer(this);
     connect(timer,SIGNAL(timeout()),this,SLOT(timerUpdata()));
     timer->start(1000);
@@ -79,16 +85,11 @@ void MainWindow::initUi()
     ui->lineEdit_RobotIP->setValidator(Validator);
     ui->lineEdit_IPCIP->setValidator(Validator);
     ui->lineEdit_REDIP->setValidator(Validator);
-    // 用于占位
-//    ui->lineEdit_RobotIP->setInputMask("000.000.000.000;");
-//    ui->lineEdit_IPCIP->setInputMask("000.000.000.000;");
-//    ui->lineEdit_REDIP->setInputMask("000.000.000.000;");
 
     ui->mapViz->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff); // 消除滚动条
     ui->mapViz->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     // 视图场景加载
-    m_qgraphicsScene =
-        new QGraphicsScene; // 要用QGraphicsView就必须要有QGraphicsScene搭配着用
+    m_qgraphicsScene = new QGraphicsScene; // 要用QGraphicsView就必须要有QGraphicsScene搭配着用
     m_qgraphicsScene->clear();
     // 创建item
     m_roboItem = new Ui::roboItem();
@@ -98,8 +99,6 @@ void MainWindow::initUi()
     //  widget添加视图
     ui->mapViz->setScene(m_qgraphicsScene);
 }
-
-
 
 void MainWindow::allconnect()
 {
@@ -160,12 +159,59 @@ void MainWindow::timerUpdata()
     this -> ui->label_time->setText(time_str);
 }
 
+void MainWindow::initPSC()
+{
+    //云台复位按钮
+    connect(ui->btn_headReset,&QPushButton::clicked,[&]{
+        headLevelCnt = 90;
+        headPitchCnt = 90;
+        psc_angle_control(QString::number(90), QString::number(90));
+    });
+    //云台上看长按
+    ui->btn_headUp->setAutoRepeat(true); //启用长按
+    ui->btn_headUp->setAutoRepeatDelay(400);//触发长按的时间
+    ui->btn_headUp->setAutoRepeatInterval(50);//长按时click信号间隔
+    connect(ui->btn_headUp,&QPushButton::clicked,[&]{
+        headPitchCnt+=5;
+        psc_angle_control(QString::number(headLevelCnt), QString::number(headPitchCnt));
+        if(headPitchCnt>=135) headPitchCnt=135;//将最大值控制在135
+    });
+    //云台下看长按
+    ui->btn_headDown->setAutoRepeat(true); //启用长按
+    ui->btn_headDown->setAutoRepeatDelay(400);//触发长按的时间
+    ui->btn_headDown->setAutoRepeatInterval(50);//长按时click信号间隔
+    connect(ui->btn_headDown,&QPushButton::clicked,[&]{
+        headPitchCnt-=5;
+        psc_angle_control(QString::number(headLevelCnt), QString::number(headPitchCnt));
+        if(headPitchCnt<=45) headPitchCnt=45;//将最小值控制在45
+    });
+    //云台右看长按
+    ui->btn_headRight->setAutoRepeat(true); //启用长按
+    ui->btn_headRight->setAutoRepeatDelay(400);//触发长按的时间
+    ui->btn_headRight->setAutoRepeatInterval(50);//长按时click信号间隔
+    connect(ui->btn_headRight,&QPushButton::clicked,[&]{
+        headLevelCnt+=5;
+        psc_angle_control(QString::number(headLevelCnt), QString::number(headPitchCnt));
+        if(headPitchCnt<=180) headPitchCnt=180;//将最大值控制在180
+    });
+    //云台左看长按
+    ui->btn_headLeft->setAutoRepeat(true); //启用长按
+    ui->btn_headLeft->setAutoRepeatDelay(400);//触发长按的时间
+    ui->btn_headLeft->setAutoRepeatInterval(50);//长按时click信号间隔
+    connect(ui->btn_headLeft,&QPushButton::clicked,[&]{
+        headLevelCnt-=5;
+        psc_angle_control(QString::number(headLevelCnt), QString::number(headPitchCnt));
+        if(headPitchCnt>=0) headPitchCnt=0;//将最小值控制在0
+    });
+}
+
 void MainWindow::initVLC()
 {
+    //可见光初始化
     ipc_instance = new VlcInstance(VlcCommon::args(), this);
     ipc_player = new VlcMediaPlayer(ipc_instance);
     ipc_player->setVideoWidget(ui->widget_ipc);
-
+    //红外初始化
     red_instance = new VlcInstance(VlcCommon::args(), this);
     red_player = new VlcMediaPlayer(red_instance);
     red_player->setVideoWidget(ui->widget_red);
@@ -180,7 +226,8 @@ void MainWindow::openUrl()
     ipc_media = new VlcMedia(ipc_url, ipc_instance);
     ipc_player->open(ipc_media);
 
-    QString red_url = "rtsp://192.168.0.118:554/user=admin&password=&channel=1&stream=1.sdp?";
+    //QString red_url = "rtsp://192.168.0.112:554/user=admin&password=&channel=1&stream=1.sdp?";
+    QString red_url = "rtsp://192.168.0.117:9554/live?channel=0&subtype=0";
     red_media = new VlcMedia(red_url, red_instance);
     red_player->open(red_media);
 }
@@ -195,13 +242,12 @@ void MainWindow::onTextMessageReceived(const QString &message)
         map_thread.w = this;
         map_thread.message = message;
         map_thread.start();
-        // map_data_paint(message);
     } else if (message.contains("/robot_pose")) {
         robot_pose_thread.select = 2;
         robot_pose_thread.w = this;
         robot_pose_thread.message = message;
         robot_pose_thread.start();
-        // get_RobotPose(message);
+        // get_RobotPose(message)
     } else if (message.contains("/PMS_get_status")) {
         pms_thread.select = 3;
         pms_thread.w = this;
@@ -268,6 +314,12 @@ void MainWindow::cmd_vel(QString x, QString z)
     m_websocket.sendTextMessage(data);
 }
 
+// 发送头部消息
+void MainWindow::psc_angle_control(QString level, QString pitch)
+{
+    QString data = QString("{\"msg\":{\"set_level\":%1,\"set_pitch\":%2},\"op\":\"publish\",\"topic\":\"/PSC_angle_control\"}").arg(level).arg(pitch);
+    m_websocket.sendTextMessage(data);
+}
 
 void MainWindow::on_btn_watch_clicked()
 {

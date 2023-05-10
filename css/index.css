@@ -30,5 +30,7 @@ QGroupBox { border: 1px solid #DCDFE6; border-radius: 6px; font-size: 13px; marg
 QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; padding: 0px 5px 3px; }
 #w_bg_2 { background-color: #f2f1f5; border-radius: 22px; }
 #centralwidget { background-color: #f2f1f5; border-radius: 22px; }
-#btn_login_7, #btn_exit_7 { height: 16px; font-size: 14px; background-color: #f2f2f2; border: 1px solid #DCDFE6; border-radius: 15px; padding: 6px 20px; }
-#btn_login_7:hover, #btn_exit_7:hover { color: #ffffff; font-weight: bold; background-color: #00C5CD; }
+#btn_login, #btn_exit { height: 16px; font-size: 14px; background-color: #f2f2f2; border: 1px solid #DCDFE6; border-radius: 15px; padding: 6px 20px; }
+#btn_login:hover, #btn_exit:hover { color: #ffffff; font-weight: bold; background-color: #00C5CD; }
+#btn_watch, #btn_log, #btn_task, #btn_set { height: 16px; font-size: 14px; background-color: #f2f2f2; border: 1px solid #DCDFE6; border-radius: 18px; padding: 6px 20px; }
+#btn_watch:hover, #btn_log:hover, #btn_task:hover, #btn_set:hover  { color: #ffffff; font-weight: bold; background-color: #00C5CD; }

@@ -56,6 +56,7 @@ public:
     void ip_init();
     //Ui界面初始化函数
     void initUi();
+    void initPSC();
     // 连接信号与槽
     void allconnect();
     // 连接Websocket后需初始化的内容
@@ -70,6 +71,8 @@ public:
     void read_envirment();
     // 控制速度
     void cmd_vel(QString x, QString z);
+    //控制云台
+    void psc_angle_control(QString level, QString pitch);
     // 订阅位置信息
     void getrobot_pose();
     // 地图信息处理函数
