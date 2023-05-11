@@ -73,6 +73,8 @@ void MainWindow::initUi()
 {
     this->setProperty("canMove",false);
     this->setWindowTitle("巡检机器人管理系统");
+    //按键颜色改变
+    ui->btn_watch->setStyleSheet("background-color: #00C5CD;" "color: #FFFFFF;");
     //定时器
     QTimer *timer = new QTimer(this);
     connect(timer,SIGNAL(timeout()),this,SLOT(timerUpdata()));
@@ -237,6 +239,7 @@ void MainWindow::openUrl()
 // 接收到信息后来到这里进行判断，并启动相应的线程处理数据
 void MainWindow::onTextMessageReceived(const QString &message)
 {
+    qDebug() << "接收到message:" << message;
     if (message.contains("/map")) // 如果是地图信息
     {
         map_thread.select = 1;
@@ -425,18 +428,30 @@ void MainWindow::psc_angle_control(QString level, QString pitch)
 void MainWindow::on_btn_watch_clicked()
 {
     ui->sw_page->setCurrentIndex(0);
+    ui->btn_watch->setStyleSheet("background-color: #00C5CD;" "color: #FFFFFF;");
+    ui->btn_log->setStyleSheet("background-color: #f2f2f2;" "color: #000000;");
+    ui->btn_task->setStyleSheet("background-color: #f2f2f2;" "color: #000000;");
+    ui->btn_set->setStyleSheet("background-color: #f2f2f2;" "color: #000000;");
     qDebug()<<"切换page_watch"<<endl;
 }
 
 void MainWindow::on_btn_log_clicked()
 {
     ui->sw_page->setCurrentIndex(1);
+    ui->btn_watch->setStyleSheet("background-color: #f2f2f2;" "color: #000000;");
+    ui->btn_log->setStyleSheet("background-color: #00C5CD;" "color: #FFFFFF;");
+    ui->btn_task->setStyleSheet("background-color: #f2f2f2;" "color: #000000;");
+    ui->btn_set->setStyleSheet("background-color: #f2f2f2;" "color: #000000;");
     qDebug()<<"切换page_log"<<endl;
 }
 
 void MainWindow::on_btn_task_clicked()
 {
     ui->sw_page->setCurrentIndex(2);
+    ui->btn_watch->setStyleSheet("background-color: #f2f2f2;" "color: #000000;");
+    ui->btn_log->setStyleSheet("background-color: #f2f2f2;" "color: #000000;");
+    ui->btn_task->setStyleSheet("background-color: #00C5CD;" "color: #FFFFFF;");
+    ui->btn_set->setStyleSheet("background-color: #f2f2f2;" "color: #000000;");
     qDebug()<<"切换page_task"<<endl;
 }
 
@@ -444,5 +459,9 @@ void MainWindow::on_btn_set_clicked()
 
 {
     ui->sw_page->setCurrentIndex(3);
+    ui->btn_watch->setStyleSheet("background-color: #f2f2f2;" "color: #000000;");
+    ui->btn_log->setStyleSheet("background-color: #f2f2f2;" "color: #000000;");
+    ui->btn_task->setStyleSheet("background-color: #f2f2f2;" "color: #000000;");
+    ui->btn_set->setStyleSheet("background-color: #00C5CD;" "color: #FFFFFF;");
     qDebug()<<"切换page_set"<<endl;
 }
