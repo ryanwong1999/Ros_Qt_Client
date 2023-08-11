@@ -103,6 +103,7 @@ void MainWindow::initUi()
     ui->mapViz->setScene(m_qgraphicsScene);
 }
 
+//连接socket
 void MainWindow::allconnect()
 {
     // 连接Websocket的连接状态
@@ -162,6 +163,7 @@ void MainWindow::timerUpdata()
     this -> ui->label_time->setText(time_str);
 }
 
+//初始化头部云台控制
 void MainWindow::initPSC()
 {
     //云台复位按钮
@@ -208,6 +210,7 @@ void MainWindow::initPSC()
     });
 }
 
+//初始化VLC
 void MainWindow::initVLC()
 {
     //可见光初始化
@@ -240,24 +243,23 @@ void MainWindow::openUrl()
 void MainWindow::onTextMessageReceived(const QString &message)
 {
     qDebug() << "接收到message:" << message;
-    if (message.contains("/map")) // 如果是地图信息
-    {
+    if (message.contains("/map")) { // 如果是地图信息
         map_thread.select = 1;
         map_thread.w = this;
         map_thread.message = message;
         map_thread.start();
-    } else if (message.contains("/robot_pose")) {
+    } else if (message.contains("/robot_pose")) {   //位姿信息
         robot_pose_thread.select = 2;
         robot_pose_thread.w = this;
         robot_pose_thread.message = message;
         robot_pose_thread.start();
         // get_RobotPose(message)
-    } else if (message.contains("/PMS_get_status")) {
+    } else if (message.contains("/PMS_get_status")) {   //电量信息
         pms_thread.select = 3;
         pms_thread.w = this;
         pms_thread.message = message;
         pms_thread.start();
-    } else if (message.contains("/Envirment_data")) {
+    } else if (message.contains("/Envirment_data")) {   //环境数据
         envirment_thread.select = 4;
         envirment_thread.w = this;
         envirment_thread.message = message;
